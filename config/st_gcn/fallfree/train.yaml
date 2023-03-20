@@ -1,0 +1,35 @@
+work_dir: ./work_dir/recognition/fallfree/attention/ST_GCN
+weights: ./work_dir/recognition/fallfree/ST_GCN/epoch30_90per_model.pt
+# feeder
+feeder: feeder.feeder.Feeder
+train_feeder_args:
+  data_path: ./data/fallfree_3/train_data.npy
+  label_path: ./data/fallfree_3/train_label.pkl
+test_feeder_args:
+  data_path: ./data/fallfree_3/val_data.npy
+  label_path: ./data/fallfree_3/val_label.pkl
+
+# model
+model: net.st_gcn.Model
+model_args:
+  in_channels: 3
+  num_class: 2
+  dropout: 0.5
+  edge_importance_weighting: True
+  graph_args:
+    layout: 'ntu-rgb+d'
+    strategy: 'spatial'
+
+#optim
+weight_decay: 0.0001
+base_lr: 0.01
+step: [10, 50]
+
+# training
+device: [0]
+batch_size: 2
+test_batch_size: 8
+num_epoch: 1
+
+
+
