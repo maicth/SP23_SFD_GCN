@@ -63,6 +63,7 @@ class Model(nn.Module):
             ])
         else:
             self.edge_importance = [1] * len(self.st_gcn_networks)
+        # attention block
         self.attention_block = AttentionBlock(0.5)
         # fcn for prediction
         self.fcn = nn.Conv2d(128, num_class, kernel_size=1)
@@ -71,7 +72,7 @@ class Model(nn.Module):
 
         # data normalization
         N, C, T, V, M = x.size()
-        x = x.permute(0, 4, 3, 1, 2).contiguous() # 04312 NMVCT
+        x = x.permute(0, 4, 3, 1, 2).contiguous()
         x = x.view(N * M, V * C, T)
         x = self.data_bn(x)
         x = x.view(N, M, V, C, T)
@@ -158,6 +159,7 @@ class st_gcn(nn.Module):
         self.gcn = ConvTemporalGraphical(in_channels, out_channels,
                                          kernel_size[1])
 
+        # original tcn
         # self.tcn = nn.Sequential(
         #     nn.BatchNorm2d(out_channels),
         #     nn.ReLU(inplace=True),
@@ -171,6 +173,7 @@ class st_gcn(nn.Module):
         #     nn.BatchNorm2d(out_channels),
         #     nn.Dropout(dropout, inplace=True),
         # )
+
         self.se_block = SEBlock(out_channels)
         self.tcn = TemporalGatedUnit(out_channels, out_channels, (kernel_size[0], 1), padding, (stride, 1))
         # self.attention_block = AttentionBlock(0.3)
@@ -200,22 +203,11 @@ class st_gcn(nn.Module):
 
         res = self.residual(x)
         x, A = self.gcn(x, A)
+
+        # new TCN = SE Block + TCN + SE Block
         x = self.se_block(x)
         x = self.tcn(x)
         x = self.se_block(x) + res
 
         # x = self.attention_block(x)
         return self.relu(x), A
-
-    # def learnable_matrix(self, x, A):
-    #     N, C, T, V = x.size()
-    #     # print(A.size(), x.size())
-    #     A1 = self.conv_a(x).permute(0,3,1,2).contiguous().view(N, V, self.out_channels*T)
-    #     A2 = self.conv_b(x).view(N, self.out_channels*T, V)
-    #     concat_matrix = torch.matmul(A1, A2) / A1.size(-1)
-    #     result = torch.ones(A.size())
-    #     for i in range(A.size(0)):
-    #         result[i] = concat_matrix[i]
-    #
-    #     result.softmax(dim=1)
-    #     return result.softmax(dim=2).cuda(x.get_device())
